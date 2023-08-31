@@ -4,42 +4,42 @@
 
 @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham-Light.ttf) format("truetype");
+    src: url(resources/fonts/Gotham-Light.ttf) format("truetype");
     font-weight: 100;
     font-style: normal;
   }
   
   @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham-Book.ttf) format("truetype");
+    src: url(resources/fonts/Gotham-Book.ttf) format("truetype");
     font-weight: 200;
     font-style: normal;
   }
   
   @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham-Medium.ttf) format("truetype");
+    src: url(resources/fonts/Gotham-Medium.ttf) format("truetype");
     font-weight: 300;
     font-style: normal;
   }
   
   @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham-Bold.ttf) format("truetype");
+    src: url(resources/fonts/Gotham-Bold.ttf) format("truetype");
     font-weight: 400;
     font-style: normal;
   }
   
   @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham-Black.ttf) format("truetype");
+    src: url(resources/fonts/Gotham-Black.ttf) format("truetype");
     font-weight: 500;
     font-style: normal;
   }
   
   @font-face {
     font-family: "Pacifico";
-    src: url(fonts/Pacifico.ttf) format("truetype");
+    src: url(resources/fonts/Pacifico.ttf) format("truetype");
     font-style: normal;
   }
   
@@ -425,7 +425,7 @@
   h3 {
     color: #4a4a4a;
     font-size: 20px;
-    font-weight: 250;
+    font-weight: 300;
     margin: 0;
     margin-bottom: 10px;
   }
@@ -455,7 +455,7 @@
   }
 
   p b {
-    font-weight: 500;
+    font-weight: 300;
   }
 
   /* code format */
@@ -511,6 +511,38 @@
     font-weight: 300;
   }
   
+  table {
+    font-size: medium;
+    font-weight: 200;
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+
+  }
+
+  th, td{
+    border-width: 1px;
+    border-color: #e0baba;
+    border-style: solid;
+  }
+
+  th {
+    background-color: #DA635D;
+    color: white;
+    font-weight: 300;
+    padding: 10px;
+    text-align: center;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+
+  td {
+    padding: 10px;
+    text-align: center;
+  }
+
   .content-side {
     width: 30%;
     height: 100vh;

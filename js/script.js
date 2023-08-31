@@ -1,8 +1,8 @@
 $(document).ready(function() {
-
+	console.log("script.js loaded");
 	// preload pages and images
 	$("a[id^=block-link-]").each(function(i, val) {
-		var page = val.href.split("/")[8];
+		var page = val.href.split("/")[9];
 		var insert = "<object id='loaded' type='text/html' data='pages/" + page + "'></object>";
  		$("#load-content").html(insert);
 	});
@@ -52,7 +52,6 @@ $(document).ready(function() {
 
     	$("#container").addClass("sidebar");
     	$("#load-content").show(0);
-
     	$("#load-content").animate({"opacity": 0}, 250);
 
  		var parsed = this.id.split("-")[2];

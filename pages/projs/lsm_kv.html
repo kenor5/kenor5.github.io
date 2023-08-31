@@ -1,0 +1,152 @@
+<head>
+	<link rel="stylesheet" type="text/css" href="../../style.css">
+	<script src="../../js/jquery.js"></script>
+	<script src="../../js/script.js"></script>
+</head>
+
+<div class="content-main">
+	<div class="text-container">
+        <h1>LSM-KV: KVStore using Log-structured Merge Tree</h1>
+
+		<h2>Background Intro</h2>
+
+            <p>LSM (Log-Structured-Merge-Tree) is a storage structure whose storage is divided into memory and disk. Because the memory capacity of the computer is small and cannot be stored for a long time, the disk capacity is large and can be stored for a long time but the read and write speed is slow. In order to solve this contradiction, LSM-KV proposes a storage structure based on memory and disk. This Project requires us to implement an LSM-KV.</p>
+
+        <h2>Data Structure</h2>
+
+            <h3>Skip List</h3>
+
+                <p>A skip list is a data structure. It makes the average time complexity of both search and insertion operations of an ordered sequence containing n elements O(logn), which is better than the O(n) complexity of an array. The fast query effect is achieved by maintaining a multi-level linked list, and compared with the number of linked list elements in the previous layer (lower layer), the number of elements in each layer of linked list is less. The role of the skiplist in this project is a memory data structure, because it has better performance in adding, deleting, modifying and checking, and is relatively simple to implement (compared to red-black trees, etc.).</p>
+        
+            <h3>SSTable</h3>
+
+                <p>SSTable provides a persistent, ordered, immutable mapping from keys to values. The SSTable of this project includes five parts: header, bloomfilter, key-offset and value, which will not be introduced here. The biggest feature of SSTable is that it is read-only, and it can only be created but cannot be modified or deleted.</p>
+        
+        <h2>Algorithm</h2>
+
+            <h3>Merge Sort</h3>
+
+                <p>After a certain layer of sstable is full, it needs to be merged and sorted with the next layer. Here, the merge method encapsulated by std::list is directly used, which saves a lot of time. But this method requires the two lists to be ordered in advance, which is guaranteed by the order of SSTable. Another point is that for custom classes, an additional sorting function is needed to indicate the sorting rules.</p>
+        
+        <h2>Test</h2>
+
+            <h3>Expected Result</h3>
+
+                <p><code>GET</code> For the GET operation, first search from the MemTable, and end when the record corresponding to the key K is found. If the key K does not exist in the MemTable, first check each SSTable in the cache layer by layer from the memory, first use the BloomFilter to judge whether K is in the current SSTable, if it exists, use the binary search to find the corresponding offset in the index, and then Read the corresponding file from the hard disk and take out the value according to the offset. For the Get operation, when there are few elements, there is no need to access the disk, and it takes logn time; when there are many elements, the probability of finding them in memory is very small, so the expected time is longer.</p>
+
+                <p><code>PUT</code> For the Put operation, first try to insert in the MemTable. This step takes O(logn) time, where n is the number of elements in the Memtable. If the size exceeds the limit, the entire content of the Memtable needs to be written to disk. This step is related to the inserted elements , which takes a long time compared to memory insertion. The latter is the main source of time overhead for Put operations.</p>
+
+                <p><code>DEL</code> The Del operation involves a search and an insert, and the overall time is related to the first two steps.</p>
+
+                <p><code>SCAN</code> The scan operation needs to scan the entire Memtable and disk files, but due to the in-memory cache, only files with intersecting ranges will be read, so it will save some time. However, the scan operation is still the most time-consuming among the four operations. Since the interval range is not fixed, scan may need to access many disk files and read a lot of data.</p>
+            
+            <h3>Analysis</h3>
+
+                <table>
+                <tr>
+                    <th>Size</th>
+                    <th>Put</th>
+                    <th>Get</th>
+                    <th>Del</th>
+                    <th>Scan</th>
+                </tr>
+                <tr>
+                    <td>2048</td>
+                    <td>0.009188</td>
+                    <td>0.094697</td>
+                    <td>0.089745</td>
+                    <td>1.137</td>
+                </tr>
+                <tr>
+                    <td>4096</td>
+                    <td>0.019475</td>
+                    <td>0.63361</td>
+                    <td>0.072033</td>
+                    <td>2.78</td>
+                </tr>
+                <tr>
+                    <td>6144</td>
+                    <td>0.029</td>
+                    <td>0.052548</td>
+                    <td>0.073816</td>
+                    <td>5.438</td>
+                </tr>
+                <tr>
+                    <td>8192</td>
+                    <td>0.036331</td>
+                    <td>0.048496</td>
+                    <td>0.071502</td>
+                    <td>8.32</td>
+                </tr>
+                <tr>
+                    <td>10240</td>
+                    <td>0.046588</td>
+                    <td>0.042423</td>
+                    <td>0.072494</td>
+                    <td>12.16</td>
+                </tr>
+
+                <tr>
+                    <td>12288</td>
+                    <td>0.067581</td>
+                    <td>0.043429</td>
+                    <td>0.074151</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>14336</td>
+                    <td>0.074578</td>
+                    <td>0.038443</td>
+                    <td>0.084136</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>16384</td>
+                    <td>0.095756</td>
+                    <td>0.037858</td>
+                    <td>0.094682</td>
+                    <td>-</td>
+                </tr>
+                </table>
+                <p>As shown above, when the data size is small, the time of put, scan and del is relatively short because it does not involve reading disk files. And the delay of del is stably higher than that of put. As for the delay of the get operation is getting smaller, I don't quite understand it. Get only gets one number at a time, and cache the key of the sstable in the cache to ensure that it can find the accurate disk file stably. The relationship between the time consumption of one operation and the size of the data Fetch is not as large as several other operations. After expanding the data scale, it turned out that the average time of get increases, and overall the time of get increases. For the scan operation, I set it to scan (0, size/2) for different sizes. Here only the time of the first few sizes is listed. If the later time is too long, there is no waiting record.</p>
+
+            <h3>Index cache and Bloom Filter test</h3>
+                <p>We need to compare average lantency of GET operation in the following 3 conditions:</p>
+                <ul>
+                    <li>No SSTable cached in memory, it is required to get index of SSTable from disk, and read data by offset.</li>
+                    <li>SSTable is partly cached, we get index of SSTable from cache in bi-search algorithm, and read data from disk.</li>
+                    <li>SSTable index and Bloom Filter are cached. First use the Bloom Filter to judge whether a key value may be in an SSTable, and then use binary search if it exists, otherwise directly check the index of the next SSTable.</li>
+                </ul>
+
+                <p>Tests are carried out with data in fixed size, which is 1024*32 B. The results are shown in the table. It can be seen that the full cache is undoubtedly the fastest, and only the cache index without bloomfilter is slower than the former. No cache is the slowest because every sst file is accessed.</p>
+
+                <table>
+                    <tr>
+                        <th>Type</th>
+                        <th>Average cost</th>
+                    </tr>
+                    <tr>
+                        <td>no cache</td>
+                        <td>0.986683</td>
+                    </tr>
+                    <tr>
+                        <td>index cache</td>
+                        <td>0.044525</td>
+                    </tr>
+                    <tr>
+                        <td>index and bloomfilter</td>
+                        <td>0.038675</td>
+                    </tr>
+                </table>
+
+            <h3>Influence of compaction</h3>
+                <p>In the case of continuously inserting data, count the number of PUT requests processed per second (that is, throughput), and draw a line graph of its change over time. The test needs to show the impact of compaction on throughput. You can make the space occupied by the value in the key-value pair larger, thereby increasing the frequency of compaction, so that the effect is more obvious. Here, we choose to insert 40k sets of data, and count the time every 400 sets. The value of each data is string(500, 's' ), the result is shown in Fig. The reduction in throughput is caused by compaction. It can be seen that when a certain number of insertions is reached, a merge is required.</p>
+                <img src="https://github.com/kenor5/LSM_Tree/raw/main/5.bmp" alt="compaction influence">
+                
+
+
+        <p>
+            <a href="https://github.com/kenor5/LSM_Tree">View in Github</a>
+        </p>
+    </div>
+</div>
