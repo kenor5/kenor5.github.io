@@ -6,6 +6,269 @@
 
 <div class="content-main">
 	<div class="text-container">
-        <p>currently empty</p>
+        <h1>Minik8s</h1>
+
+        <h2>Overall architecture</h2>
+            <img src="https://user-images.githubusercontent.com/75160010/246392316-ad757052-6d8a-4425-a9e9-f234d0fe0e2e.png"/>
+            <p><b>Minik8s</b> mainly contains following compoments:</p>
+            <p><code>Etcd</code> Running on master node, record all persistent data and varous states on the cluster.</p>
+            <p><code>Kubectl</code> Running on master node, mainly responsible for accepting and parsing user instructions, and sending them to Apiserver; after obtaining Apiserver responses, it outputs to the console; it mainly supports <i>apply, delete, get, describe</i> instructions, and also supports <i>add and update </i>instructions.</p>
+            <p><code>Apiserver</code> Running on Master node, it is the central component of minik8s. Only Apiserver can read and write Etcd. All communication in the cluster depends on the API exposed by Apiserver.</p>
+            <p><code>Scheduler(NodeController)</code> Running on master node, managing all nodes, motinoring state of each node and responsible for scheduling task.</p>
+            <p><code>ControllerManager</code> Running on master node, Responsible for managing and monitoring the state of the corresponding Api object and ensuring that it is consistent with the expected state. The included Controller looks like this</p>
+            <ul>
+                <li>PodController</li>
+                <li>ServiceController</li>
+                <li>DeploymenyController</li>
+                <li>FunctionController</li>
+                <li>JobController</li>
+                <li>ScaleController</li>
+            </ul>
+            <p><code>KubeProxy</code> Running on every node, accepting the request of Apiserver to create/delete/update service, and modify the iptable on the node.</p>
+            <p><code>Kubelet</code> Running on worker node, accepting the request of Apiserver to manage the Pod. Monitor the internal running status of the local Pod, and notify the Apiserver to update the Pod status information in etcd when the Pod status is updated.</p>
+        
+        <h2>Project Development Management</h2>
+            <p><b>project directory</b></p>
+            <img src="https://user-images.githubusercontent.com/75160010/246393352-181ff64b-77c0-42a1-8086-4e96a1cfca77.png" alt="proj dir img">
+            
+            <p><b>project branch intro</b></p>
+            <p><em>master</em> branch as main branch, different features at each stage are developed in new corresponding branches such as serverless, autoscale, and deployment.</p>
+            <img src="https://user-images.githubusercontent.com/75160010/246403183-cbe12fc6-c02b-4275-b0de-e80c5cbe2e43.png" alt="branch img">
+
+        <h2>Dependencies and Libs</h2>
+            <ul>
+                <li>Operating Docker: <em>github.com/docker/docker</em></li>
+                <li>Operating Etcd: <em>go.etcd.io/etcd/client/v3</em></li>
+                <li>Parsing yaml: <em>github.com/spf13/cobra github.com/spf13/viper</em></li>
+                <li>Internal communication: <em> google.golang.org/grpc google.golang.org/grpc/credentials/insecure net/http</em></li>
+                <li>Configuring iptable: <em> github.com/coreos/go-iptables/iptables</em></li>
+                <li>Resources monitor: <em>github.com/Prometheus github.com/docker/go-connections/nat</em></li>
+                <li>Other go libs: <em>"context" "encoding/json" "fmt" "strings" "strconv" "time" "os" "sync" "regexp" "testing"</em></li>
+            </ul>
+
+        <h2>Detailed Implementation</h2>
+            <h3>Node registeration, management and scheduling strategy</h3>
+                <p><b>Node config file</b></p>
+                <p>When the Kubelet on each node starts, it will read the corresponding Node configuration file, as follows:</p>
+                <pre>
+Name: master
+Labels:
+    hostName: master
+    os: linux
+                </pre>
+                <p>In addition to the name of the Node, the configuration file mainly uses the Label field to identify some characteristics of the node, such as os, etc. This Label will be used during scheduling. If the NodeSelector field of the Pod is not empty, the Pod will be scheduled to the Label that meets the On the Node required by the Pod.</p>
+                
+                <p><b>Node registeration</b></p>
+                <p>When Kubelet is started, it will send a message to ApiServer to register. At this time, run the command: <code>kubectl get node</code> to see the Node in the pending state: </p>
+
+                <img src="https://user-images.githubusercontent.com/75160010/246403841-b9a9e011-8593-4556-ba20-0da4534bb6e8.png" alt="kubectl get node img">
+                <p>Run command</p>
+                <pre>kubectl add node [NodeName]</pre>
+                <p>You can add the specified Node in the Pending state to the cluster (Figure 1 below). If the NodeName is empty, add all the Nodes in the Pending state to the cluster (Figure 2 below). After joining the cluster, the status of Node becomes Running and NodeController will periodically send heartbeats to Node to monitor the status of Node:</p>
+
+                <img src="https://user-images.githubusercontent.com/75160010/246403975-fbcca32f-beb8-4ca9-8dc0-756da8049bb1.png" alt="add node1">
+                <img src="https://user-images.githubusercontent.com/75160010/246404117-3a4f2fad-91c5-497c-9141-8a6b500c5a87.png" alt="add node2">
+                
+                <p><b>Node delete</b></p>
+                <p>Run command</p>
+                <pre>kubectl delete node [NodeName]</pre>
+                <p>It will delete specified node, turning its state to <code>pending</code>, scheduler will not schdule pod in this node.</p>
+                <img src="https://user-images.githubusercontent.com/75160010/246404243-5b098c30-23e0-4069-8f3f-549a05ed0021.png" alt="delete node1">
+
+                <p><b>Node monitor</b></p>
+                <p>The NodeController running on the master node will send a heartbeat to the Node whose status is Running every 30s. If there is no response, it will mark the status of the Node as dead and no longer schedule the Pod on the node:</p>
+                <img src="https://user-images.githubusercontent.com/75160010/246404335-b8cfdae1-2ab7-4943-8012-911a8f1f31b0.png" alt="node monitoring">
+
+                <p><b>Scheduling policy</b></p>
+                <p><code>NodeController</code> is responsible for scheduling as well, Minik8s supports 2 types of scheduling policy</p>
+                <ul>
+                    <li><em>RoundRobin: </em>If the Pod to be created has no special requirements on which Node to run on, that is, the NodeSelector field is empty, it will be scheduled to the Node in the Running state in the form of RoundRobin.</li>
+                    <li><em>NodeSelector: </em>If the NodeSelector field with the created Pod is not empty, the field will be matched with the Label of the Node during scheduling, all eligible Nodes will be selected, and RoundRobin will be used for scheduling.</li>
+    
+                </ul>
+
+            <h3>Pod Creation, Management and Internal Communication</h3>
+                <p><b>Pod Create and delete</b></p>
+                <p>Pod creation is handled according to the situation:</p>
+                <ul>
+                    <li><code>Kubectl</code> executes the apply pod creation, writes the Pod metadata information to etcd, marks the status as Pending, uses the corresponding scheduling policy, and notifies Node to create the pod.</li>
+                    <li>If it is a new Pod created by dynamic scaling or replicaset, the <code>Apiserver</code> writes the Pod information into etcd, and the status is marked as Pending. When the watch monitoring mechanism of the Apiserver detects that the Pod status is Pending, the corresponding scheduling strategy is used to notify the Node to create pod, and update the status. A Podmanager data structure is maintained in Kubelete, which stores the metadata information of the Pod and the container information in it. After the Kubelete is created, update the information in the Podmanager and notify the master to update the Pod status to Running. The container naming method is a combination of the pod name and the container name specified in yaml: podName_ContainerName.</li>
+                </ul>
+                <p>Pod deletion is handled according to the situation:</p>
+                <ul>
+                    <li><code>Kubectl</code> directly executes the del pod command, Apiserver updates the Pod information in etcd, and notifies the Kubelete of the corresponding Node to delete the Pod-related containers;</li>
+                    <li>If it is a Pod that is dynamically scaled and reduced, the Autoscale program updates the relevant Pod information in etcd, marking the status as Succeed, and then the Apiserver’s watch monitoring Pod mechanism detects that the Pod status is Succeed, and then notifies the Node to actually delete the Pod according to the Pod’s HostIP information. After the deletion is successful, delete the hostip information of the Pod in etcd.</li>
+                </ul>
+
+
+                <p><b>Pod monitoring and management</b></p>
+                <ul>
+                    <li><em>Monitoring on the Node:</em> <code>Kubelet</code> will run a monitoring program to check whether the containers in the current Pod are alive according to the Pod list in the Podmanager. If there is a Container container in the exited state, it will notify the master to update the Pod status information and delete the remaining survivors of the Pod. Container, restart the Pod, and notify the master to update the Pod status after the restart is successful;</li>
+                    <li><em>Monitoring on Maseter:</em> run a pod monitoring, monitor information through etcd watch, when a new pod is added due to the scaling strategy, the watch mechanism detects a change, and the pod status is written in etcd as Pending, and one needs to be selected according to the Node strategy The Node starts to manage the Pod; when the watch detects that the Pod in etcd is marked as Succeed and there is a HostIP, it needs to notify the Node to delete the Pod according to the Hostip.</li>
+                </ul>
+                
+                <p><b>Pod internal communication</b></p>
+                <p>Each Pod creates a pause container, and other containers in the pod share the network address space of the pause container through the network mode of <code>network=pauseContainer</code>, so that the internal containers of the Pod communicate with each other through localhost</p>
+                
+            <h3>Inter-Pod (same Node, different Node), service communication</h3>
+                <p><b>Pod to pod</b></p>
+                <p>We use the Flannel plug-in and modify the configuration of Docker to complete the globally unique IP allocation of Pods and the communication between Pods. The relevant environment for each machine is as follows:</p>
+                <pre>
+节点名称 IP地址 安装软件
+master 192.168.1.5 etcd、flannel、docker
+node1 192.168.1.4 flannel、docker
+node2 192.168.1.6 flannel、docker 
+                </pre>
+                <p>Etcd stores the configuration of flannel, and exposes and listens to the port:</p>
+                <pre>
+// 启动Etcd时暴露端口
+etcd -name etcd1 -data-dir /root/Tools/etcd/data --advertise-client-urls http://192.168.1.5:2379,http://127.0.0.1:2379 --listen-client-urls http://192.168.1.5:2379,http://127.0.0.1:2379
+// 存放flannel配置信息
+etcdctl put /coreos.com/network/config '{"Network": "10.0.0.0/16", "SubnetLen": 24, "SubnetMin": "10.0.1.0", "SubnetMax": "10.0.20.0", "Backend": {"Type": "vxlan"}}'
+                </pre>
+                <p>flannel in each node connect to etcd to get configuration, and is assigned a global non-conflicting subnet:</p>
+                <pre>sudo flanneld --etcd-endpoints=http://192.168.163.132:2379</pre>
+                <p>Use flannel.1 on each node as docker's startup bridge instead of the default docker0 bridge:</p>
+                <img src="https://user-images.githubusercontent.com/75160010/246404513-50868a7f-e509-4e12-8017-04e9debd2aa2.png" alt="flannel1">
+                <p>In this way, globally unique IP allocation and communication between Pods on different nodes are realized.</p>
+
+            <p><b>Service to Pod</b></p>
+                <p>When the Service starts, all eligible Pods will be selected according to the labels, and then the iptable of the machine will be modified to navigate the traffic to the corresponding pods</p>
+                <pre>
+kind: Service
+metadata:
+  name: fileserver-service1
+spec:
+  selector:
+    app: myApp
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  
+  type: ClusterIP
+  clusterIP: "10.20.0.2"
+                </pre>
+                <p>Specific implementation: For each port in the ports field in the service yaml file, create a svc-chain in iptable, each svc-chain corresponds to several sep-chains, and the sep-chain navigates to the corresponding PodIp and port. When a piece of traffic arrives, it will pass through these chains in turn and reach the corresponding pod. Of course, the pod access support here is guaranteed by the communication between pods.</p>
+
+        <h3>Deployment Creation And Management</h3>
+            <p><b>Deployment creation</p></b>
+                <p>When Apiserver receives the Kubectl creation command, creates Pod metadata according to the template in yaml and writes it into etcd. etcdwatch detects the update of Pod information in etcd, and then selects Node to start Pod and manage according to the Scheduler strategy. The precautions are the metadata in the yaml file .name needs to be xxx-deployment to generate a unique Deployment name</p>
+            
+            <p><b>Deployment management</p></b>
+                <p>DeploymentController runs a WatchMonitorDeployment program, and monitors the key in etcd prefixed with "Deployment/" through Watch. When a Deploy is created or HPA updates the Deployment information, the monitor program determines whether to add or delete it based on the difference between <code>Spec.replicas</code> and <code>Status.replicas</code> For redundant replicas, update the Pod metadata related to the deployment, and indirectly update to the specified number of replicas through the Pod's watch monitoring mechanism.</p>
+
+            <p><b>Deployment replica update policy</p></b>
+                <p>In the yaml file of Deployment, you can specify the policy of deleting redundant replicas through the spec.update field. When <code>spec.update=newer</code> or empty, the newer replica created after deletion is given priority; when <code>spec.update=older</code>, the creation time is given priority. Earlier, older replica Pods.</p>
+        
+        <h3>Autoscale management and dynamic scaling strategy</h3>
+            <p>Based on cAdvisor and promtheus, the usage of CPU and Memory resources is monitored. By default, the promtheus of the master is used to query and calculate the CPU or Memory usage of the past one minute every 30s. The monitoring time interval can be specified through the scaleInterval field, which cannot be lower than promtheus to collect data The interval is 15s</p>
+            <p>Execute the HPA process:</p>
+
+            <ul>
+                <li>The Node node will start a cAdvisor container service when the kubelet starts, and the Master node will start a Promtheus container service after starting the Apiserver. When the Node registers to join the Master, it will update the Promtheus configuration file and add the Node's IP and port 8080 to the Promtheus monitoring The monitoring of the container in Node is enabled in a Target.</li>
+                <li>Enable the scaling strategy through the yaml configuration file. The configuration strategy in yaml mainly restricts the monitoring objects in minReplicas, maxReplicas, and metrics to select CPU or Memory. In the behavior field, different strategies for scaling rates can be set. For detailed configuration files, see HPA.yaml in the appendix document.</li>
+                <li>Every scaleInterval, the controller manager queries for resource utilization based on the metrics specified in each HorizontalPodAutoscaler definition. Select the Pod corresponding to the scaling strategy, and use the resource metrics API (resource metrics for each Pod). For resource indicators (such as CPU) counted by Pod, the controller obtains the metric value of each Pod specified by HorizontalPodAutoscaler from the resource indicator API. If the target usage rate is set, the controller obtains the container resource usage in each Pod. And calculate resource usage. If the target value is set, the original data will be used directly, and the percentage will not be calculated.</li>
+                <li>Next, the controller calculates the scaling ratio based on the average resource usage or the original value, and then calculates the target copy. When the difference between the target copy and the current number of copies is large, it will be multiplied (multiplied and divided) to expand, and when the number is close, it will be slowly (added and subtracted) to expand. When the number of replicas increases, it will not exceed maxReplica, and when the number decreases, it will not be low. in minReplica.</li>
+            </ul>
+            <p>HPA limit scaling rate policy configuration and selection:</p>
+            <pre>
+behavior:
+  scaleDown:
+    policies:
+    - type: Percent
+      value: 10
+      periodSeconds: 60
+    - type: Pods
+      value: 5
+      periodSeconds: 60
+    selectPolicy: Min</pre>
+            
+                <p>It supports specifying different scaling strategies through scaleDown and scaleUp in HPA's yaml. Adding the above behavior configuration to HPA can limit the rate at which pods are deleted by HPA to 10% per minute. In order to ensure that the number of pods deleted per minute does not exceed 5, you can add a second shrink policy, the size is fixed at 5, and selectPolicy is set to the minimum value Min. Setting selectPolicy to Min means that the autoscaler will choose the policy that affects the least number of Pods. If the above behavior strategy is not specified, the default strategy is: when the expected number of replicas is many times different from the current number of replicas, the multiple is expanded to be close to the expected number of replicas, and when it is closer to the number of replicas, the addition and subtraction strategy is used to fine-tune the number of replicas.</p>
+            
+        <h3>DNS And Forwarding</h3>
+            <p>Use the nginx container as a reverse proxy. When a request comes, it will first resolve the nginx IP in the hosts file, access the nginx container through the nginx IP and port 80, and the nginx container will navigate the corresponding traffic to the corresponding service ip.</p>
+            <pre>
+kind: Dns
+metadata:
+  name: dns-test1
+spec: 
+  host: example2.com 
+  paths:
+  - path: /path1
+    serviceName: fileserver-service1
+    servicePort: 8080
+  - path: /path2
+    serviceName: fileserver-service2
+    servicePort: 8080</pre>
+            <p><b>details</p></b>
+                <p>After deploying a dns, it will find the corresponding service ip in etcd according to the serviceName, then modify the nginx configuration file (this file is mounted in the container by mounting the volume), and then execute nginx reload, so that Make nginx update the forwarding directory.</p>
+
+            <p><b>process</p></b>
+                <p>First start the pod and service according to the normal situation</p>
+                <pre>
+kubectl apply -f ./test/pod3.yaml
+kubectl apply -f ./test/service_test.yaml</pre>
+                <p>Start nginx container</p>
+                <pre>./script/dns/dns_start.sh</pre>
+                <p>Start DNS</p>
+                <pre>./cmd/kubectl/kubectl/go apply -f ./test/dns1.yaml</pre>
+                <p>In this way, we can get access to service in domain name</p>
+                <pre>curl dns-example:80/path1</pre>
+                <p>It returns: <code>hello world</code></p>
+
+                <p>details process as follows:</p>
+                <ul>
+                    <li>resolve dns-example to 127.0.0.1 by <code>/etc/hosts</code></li>
+                    <li>nginx forwards 127.0.0.1:80/a to 10.20.0.2:8080, which is service clusterIp</li>
+                    <li>convert through nat table of iptable, we get Pod IP</li>
+                </ul>
+                <p>We use hosts file to resolve domain name here, so remember to add entry to it when new server_name appear in yaml files.</p>
+        
+            <h3>Fault Tolerance and Control Plane Restart</h3>
+                <p><b>master node fault tolerance and restart</b></p>
+                <p>All controllers in maseter are managed as stateless, and all metadata information will be written to etcd before applying. After restarting, all information can be directly restored from etcd. When the workload is deleted, the information in etcd will not be deleted, so it can be restored. To the state of the master control plane before restarting;</p>
+
+                <p><b>woker node fault tolerance and restart</b></p>
+                <p>Pod metadata is not persisted to disk, but stored in memory. The Podmanager mainly stores and manages the Container information related to the Pod running on the Node. When the Kubelet is restarted and registered to the Maseter and Apiserver to establish a connection, the Maseter will return the Node and the Pod information related to the Node through the HosIP information stored in the Pod. Podmanager This information will be used to reinitialize the content in the Podmanager and establish a mapping relationship from the local Pod to the container.</p>
+
+            <h3>GPU feature implementation</h3>
+                <p>We write a Http server in Python and pack it into a docker image. It runs on port 8090 and provide two services:</p>
+                <ul>
+                    <li>Upload and execute the task: visit <code>8090/sbatch</code>, accept a parameter "module_name", this function will combine the "./Data/{module_name}.cu" file in the container directory of the running server with "./Data/{module_name}. slurm” file to the Jiaowosuan platform, and submit the task, use a global variable to record the job_id, if the task is submitted successfully, return success information and job_id, otherwise return failure information.</li>
+                    <li>Query task status: access 8090/query, in order to ensure the isolation between tasks, each submitted task uses a different Pod, so the global variable job_id records the id of the task corresponding to the pod, so the query does not require parameters. This function will query the status of the task through the recorded job_id, if it is pending, it will return pending; if it is being calculated but there is no result (judging by whether the .out and .err files are generated), it will return Running; The err file is empty to determine whether the task succeeds or fails, and pulls the .out and .err files to the local. Package the flask program into a mirror, and whenever a GPU-related request comes, the corresponding Job abstraction will create a Pod that uses the mirror container, and mount the path of the cuda program and slurm script in the yaml file to the container's . /Data directory. After the JobController finds that the Pod is successfully created, it will first send 8090:/sbatch to submit the task; then start a go routine, send /query requests to the Pod every 5s, and synchronize the status to Etcd. When the monitoring thread finds that the task is completed, it pulls the result locally and deletes the corresponding Pod. Because this involves interacting with applications outside the cluster, sometimes due to network problems and many people who use hand-in-hand calculations, it may not be possible to connect. Therefore, we have adopted the Retry mechanism. If the connection is hand-in-hand calculation/ If the request to upload a file/submit a task/query a task fails or times out, it will be retried 3 times.</li>
+
+                </ul>
+
+            <h3>Serverless implementation</h3>
+                <p><b>Image Creation</b></p>
+                <p>Each image contains a server with the same flask architecture as follows:</p>
+                <img src="https://user-images.githubusercontent.com/75160010/246404608-e9a61515-1baf-4d44-9b24-3c2b04b1b683.png" alt="flask">
+
+                <p>After receiving the request, the server will dynamically import the module named <module_name> in the current directory, execute the function named <module_name> in the module, and return the execution result of the function. After the user writes the function and writes the dependencies of pip install required by his function in requirement.txt, fill in the path (functionPath and requirementPath) in function.yaml. When ApiServer receives a request to create a function, it will first dynamically create a mirror, write the PodTemplate field of the Function object into Etcd according to the created mirror, and add a route (http:floating IP:8070/function/function_name).</p>
+                
+                <p><b>Handling Http request</b></p>
+                <p>When the user sends a request to http://floating IP:8070/function/function_name through postman, etc., the corresponding FunctionHandler will first judge whether there is any Pod running, if not, it will enter the cold start process; otherwise, it will request the load Balanced to running Pods.</p>
+
+                <p><b>Scale-to-0 implementation</b></p>
+                <p>Every time a function is accessed, FunctionController will record it and persist it in Etcd. Every 30s, FunctionController checks how many times the current function has been accessed within these 30s, and adjusts the number of running Pods according to the number of accesses. For example, if the user specifies that a Pod is 10 times/30s, a Pod is currently running, and there are 18 requests in the past 30s, then FunctionController will add a Pod to meet the user's requirements. Similarly, if no request arrives within 30s, FunctionController will shut down all Pods to implement Scale-to-0.</p>
+
+                <p><b>Function update</b></p>
+                <p>After modifying the function content corresponding to functionPath, run kubectl update function [functionName] to update the corresponding function. When a function is updated, the image will be updated first, and then it will be determined whether the function has running Pods, and if not, it will end; if the function has running Pods, the old Pods will be deleted and the same number of new Pods will be recreated Mirrored Pods.</p>
+
+                <p><b>Function deletion</b></p>
+                <p>First, it will judge whether the function has any running pods. If so, it will first delete all the running pods of the function, and then mark the status of the function as deleted in Etcd. When the function is deleted and the route is accessed again, it will be transferred to The default route does not return any value, nor does it create a Pod.</p>
+
+                <p><b>WorkFlow implementation</b></p>
+                <p>In general, the implementation of WorkFlow is based on the implementation of Function, and the core lies in how to handle Choice and how to connect Function (that is, pass the return value of the previous function as a parameter to the next parameter). The core code is as follows:</p>
+                <img src="https://user-images.githubusercontent.com/75160010/246404671-69080a29-573a-460c-ac24-3ddd07d3cb2f.png" alt="workflow img">
+                <p>Use a For loop, if the type of workflowNode is "Task", then call the SendFunction function to be processed by the corresponding function, obtain the return value in JSON form, and judge whether the Workflow is over. If the type of workflowNode is "Choice", pass the return value data and workflowNode.Choices of the previous function as parameters to the SelectChoice function to select the next node. Because Workflow is a further abstraction based on Function, its capacity expansion and Scale-to-0 are the same as Function and will not be repeated here.</p>
+
+        <p>
+            <a href="https://github.com/kenor5/Minik8s">View in Github</a>
+        </p>
+        
+
+    
     </div>
 </div>

@@ -10,35 +10,35 @@
 
 		<h2>Background Intro</h2>
 
-        <p>LSM (Log-Structured-Merge-Tree) is a storage structure whose storage is divided into memory and disk. Because the memory capacity of the computer is small and cannot be stored for a long time, the disk capacity is large and can be stored for a long time but the read and write speed is slow. In order to solve this contradiction, LSM-KV proposes a storage structure based on memory and disk. This Project requires us to implement an LSM-KV.</p>
+            <p>LSM (Log-Structured-Merge-Tree) is a storage structure whose storage is divided into memory and disk. Because the memory capacity of the computer is small and cannot be stored for a long time, the disk capacity is large and can be stored for a long time but the read and write speed is slow. In order to solve this contradiction, LSM-KV proposes a storage structure based on memory and disk. This Project requires us to implement an LSM-KV.</p>
 
         <h2>Data Structure</h2>
 
-        <h3>Skip List</h3>
+            <h3>Skip List</h3>
 
-        <p>A skip list is a data structure. It makes the average time complexity of both search and insertion operations of an ordered sequence containing n elements O(logn), which is better than the O(n) complexity of an array. The fast query effect is achieved by maintaining a multi-level linked list, and compared with the number of linked list elements in the previous layer (lower layer), the number of elements in each layer of linked list is less. The role of the skiplist in this project is a memory data structure, because it has better performance in adding, deleting, modifying and checking, and is relatively simple to implement (compared to red-black trees, etc.).</p>
-	
-        <h3>SSTable</h3>
+                <p>A skip list is a data structure. It makes the average time complexity of both search and insertion operations of an ordered sequence containing n elements O(logn), which is better than the O(n) complexity of an array. The fast query effect is achieved by maintaining a multi-level linked list, and compared with the number of linked list elements in the previous layer (lower layer), the number of elements in each layer of linked list is less. The role of the skiplist in this project is a memory data structure, because it has better performance in adding, deleting, modifying and checking, and is relatively simple to implement (compared to red-black trees, etc.).</p>
+        
+            <h3>SSTable</h3>
 
-        <p>SSTable provides a persistent, ordered, immutable mapping from keys to values. The SSTable of this project includes five parts: header, bloomfilter, key-offset and value, which will not be introduced here. The biggest feature of SSTable is that it is read-only, and it can only be created but cannot be modified or deleted.</p>
-    
+                <p>SSTable provides a persistent, ordered, immutable mapping from keys to values. The SSTable of this project includes five parts: header, bloomfilter, key-offset and value, which will not be introduced here. The biggest feature of SSTable is that it is read-only, and it can only be created but cannot be modified or deleted.</p>
+        
         <h2>Algorithm</h2>
 
-        <h3>Merge Sort</h3>
+            <h3>Merge Sort</h3>
 
-        <p>After a certain layer of sstable is full, it needs to be merged and sorted with the next layer. Here, the merge method encapsulated by std::list is directly used, which saves a lot of time. But this method requires the two lists to be ordered in advance, which is guaranteed by the order of SSTable. Another point is that for custom classes, an additional sorting function is needed to indicate the sorting rules.</p>
+                <p>After a certain layer of sstable is full, it needs to be merged and sorted with the next layer. Here, the merge method encapsulated by std::list is directly used, which saves a lot of time. But this method requires the two lists to be ordered in advance, which is guaranteed by the order of SSTable. Another point is that for custom classes, an additional sorting function is needed to indicate the sorting rules.</p>
         
         <h2>Test</h2>
 
-        <h3>Expected Result</h3>
+            <h3>Expected Result</h3>
 
-        <p><em>GET</em> For the GET operation, first search from the MemTable, and end when the record corresponding to the key K is found. If the key K does not exist in the MemTable, first check each SSTable in the cache layer by layer from the memory, first use the BloomFilter to judge whether K is in the current SSTable, if it exists, use the binary search to find the corresponding offset in the index, and then Read the corresponding file from the hard disk and take out the value according to the offset. For the Get operation, when there are few elements, there is no need to access the disk, and it takes logn time; when there are many elements, the probability of finding them in memory is very small, so the expected time is longer.</p>
+                <p><em>GET</em> For the GET operation, first search from the MemTable, and end when the record corresponding to the key K is found. If the key K does not exist in the MemTable, first check each SSTable in the cache layer by layer from the memory, first use the BloomFilter to judge whether K is in the current SSTable, if it exists, use the binary search to find the corresponding offset in the index, and then Read the corresponding file from the hard disk and take out the value according to the offset. For the Get operation, when there are few elements, there is no need to access the disk, and it takes logn time; when there are many elements, the probability of finding them in memory is very small, so the expected time is longer.</p>
 
-        <p><em>PUT</em> For the Put operation, first try to insert in the MemTable. This step takes O(logn) time, where n is the number of elements in the Memtable. If the size exceeds the limit, the entire content of the Memtable needs to be written to disk. This step is related to the inserted elements , which takes a long time compared to memory insertion. The latter is the main source of time overhead for Put operations.</p>
+                <p><em>PUT</em> For the Put operation, first try to insert in the MemTable. This step takes O(logn) time, where n is the number of elements in the Memtable. If the size exceeds the limit, the entire content of the Memtable needs to be written to disk. This step is related to the inserted elements , which takes a long time compared to memory insertion. The latter is the main source of time overhead for Put operations.</p>
 
-        <p><em>DEL</em> The Del operation involves a search and an insert, and the overall time is related to the first two steps.</p>
+                <p><em>DEL</em> The Del operation involves a search and an insert, and the overall time is related to the first two steps.</p>
 
-        <p><em>SCAN</em> The scan operation needs to scan the entire Memtable and disk files, but due to the in-memory cache, only files with intersecting ranges will be read, so it will save some time. However, the scan operation is still the most time-consuming among the four operations. Since the interval range is not fixed, scan may need to access many disk files and read a lot of data.</p>
+                <p><em>SCAN</em> The scan operation needs to scan the entire Memtable and disk files, but due to the in-memory cache, only files with intersecting ranges will be read, so it will save some time. However, the scan operation is still the most time-consuming among the four operations. Since the interval range is not fixed, scan may need to access many disk files and read a lot of data.</p>
 
 
     </div>
