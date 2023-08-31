@@ -160,98 +160,99 @@
                 我的完成顺序还是有些问题的，把双人模式放在最后要改动的东西十分多，应该提前解决（也可能是我没想到合适的解决方法）
                 </p>
 
-<p>
-这里就按照我的顺序逐步讲解
-</p>
-<h2>
-做出菜单窗口，几个窗口的跳转
-</h2>
-<p>
-先搭好框架，再往里面填充内容，这和我们的任务书推荐顺序稍有不同，但我觉得把这一步放在前面挺正确的。
-</p>
-<p>
-这一步我主要参考文档的内容：http://shouce.jb51.net/qt-beginning/5.html
-</p>
-<p>
-在编写窗口之前，首先需要理解以下概念：信号和槽函数
-</p>
-<p>
-在我的理解里，一个窗口就像一个人，他可以喊话，听到他话的人作出反应。在这个过程里，喊话就是一个窗口发送信号，做出反应就是另一个窗口响应槽函数，这样就完成了一个信号的传递。
-</p>
-<p>
+            <p>
+            这里就按照我的顺序逐步讲解
+            </p>
+            <h2>
+            做出菜单窗口，几个窗口的跳转
+            </h2>
+                <p>
+                先搭好框架，再往里面填充内容，这和我们的任务书推荐顺序稍有不同，但我觉得把这一步放在前面挺正确的。
+                </p>
+                <p>
+                这一步我主要参考文档的内容：http://shouce.jb51.net/qt-beginning/5.html
+                </p>
+                <p>
+                在编写窗口之前，首先需要理解以下概念：信号和槽函数
+                </p>
+                <p>
+                在我的理解里，一个窗口就像一个人，他可以喊话，听到他话的人作出反应。在这个过程里，喊话就是一个窗口发送信号，做出反应就是另一个窗口响应槽函数，这样就完成了一个信号的传递。
+                </p>
+                <p>
 
-发送的主体和执行主体也可以是同一个窗口，就像人大脑给肢体发送信息一样。
-</p>
-<p>
-这里先实现三个窗口之间的互相切换（我是用到了三个窗口，一个开始窗口，一个模式选择窗口，一个主窗口）
-</p>
-<h2>
-添加窗口
-</h2>
-<p>
-添加dialog窗口（初学建议Qt设计师ui类）
-</p>
-<p>
-进入dialog的ui编辑界面，拖入一个pushbutton
-</p>
-<p>
+                发送的主体和执行主体也可以是同一个窗口，就像人大脑给肢体发送信息一样。
+                </p>
+                <p>
+                这里先实现三个窗口之间的互相切换（我是用到了三个窗口，一个开始窗口，一个模式选择窗口，一个主窗口）
+                </p>
 
-双击pushbutton，可以修改按钮文字，修改为“开始”，右键单击，点击“转到槽”
-</p>
-<p>
+                <ul>
+                    <li>添加窗口</li>
+                    <li>添加dialog窗口（初学建议Qt设计师ui类）</li>
+                    <li>进入dialog的ui编辑界面，拖入一个pushbutton
+                        <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827132405453-1758956156.png" alt="pushbutton">
+                        <p>
+                            双击pushbutton，可以修改按钮文字，修改为“开始”，右键单击，点击“转到槽”
+                        </p>
 
-在弹出的转到槽对话框中选择<code>clicked()</code>信号并按下确定按钮。这时会跳转到编辑模式dialog.cpp文件的on_pushButton_clicked()函数处，这个就是自动生成的槽，它已经在dialog.h文件中进行了声明。我们只需要更改函数体即可。这里更改为：
-</p>
-
-<pre>
+                        <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827132806066-687451720.png" alt="change text">
+                        <p>在弹出的转到槽对话框中选择<code>clicked()</code>信号并按下确定按钮。这时会跳转到编辑模式dialog.cpp文件的on_pushButton_clicked()函数处，这个就是自动生成的槽，它已经在dialog.h文件中进行了声明。我们只需要更改函数体即可。这里更改为：
+                        </p>
+                        <pre>
 void Dialog::on_pushButton_clicked()
 {
     this->hide();
     emit mainShow();
 }
-</pre>
-<p>
-我们让当前窗口隐藏，让主窗口显示，我们需要在dialog.h里面定义mainShow() 信号
-</p>
-<p>
-
-这样点击“开始”按钮后，dialog窗口就能发送信号并将自身隐藏，下一步我们需要让mainwindow响应信号显示自身。
-</p>
-<p>
-链接信号和槽函数
-</p>
-<p>
-在main.cpp创建dialog对象，并链接dialog对象的发送信号和mainwindow的相应槽函数
-</p>
-
-<pre>
+                            </pre>
+                            <p>
+                            我们让当前窗口隐藏，让主窗口显示，我们需要在dialog.h里面定义mainShow() 信号
+                            </p>
+                            <p>
+                                这样点击“开始”按钮后，dialog窗口就能发送信号并将自身隐藏，下一步我们需要让mainwindow响应信号显示自身。
+                            </p>
+                                
+                    </li>
+                    <li>
+                        <p>
+                            链接信号和槽函数
+                            </p>
+                            <p>
+                            在main.cpp创建dialog对象，并链接dialog对象的发送信号和mainwindow的相应槽函数
+                            </p>
+                            
+                            <pre>
 QObject::connect(&dlg, SIGNAL(mainShow()), &w, SLOT(show()));
-</pre>
+                            </pre>
+                    </li>
+
+                </ul>
 
 
-<p>
-这样就可以实现点击开始按钮后，dialog窗口隐藏，主窗口显示。如果想要隐藏主窗口显示dialog窗口，那就在mainwindow里创建一个按钮，像之前一样设置按键槽函数->发送信号->链接信号和槽函数->设置槽函数
-</p>
-<p>
-如此一来就可以实现几个界面的跳转了
-</p>
+                <p>
+                这样就可以实现点击开始按钮后，dialog窗口隐藏，主窗口显示。如果想要隐藏主窗口显示dialog窗口，那就在mainwindow里创建一个按钮，像之前一样设置按键槽函数->发送信号->链接信号和槽函数->设置槽函数
+                </p>
+                <p>
+                如此一来就可以实现几个界面的跳转了
+                </p>
 
-<h2>
-在主窗口上显示按钮和人物
-</h2>
+            <h2>
+            在主窗口上显示按钮和人物
+            </h2>
 
-<p>
-首先了解一下布局和widget
-</p>
-<p>
-先对qt的组件层次关系有一个总体上的把握，大体的层次关系是这样，mainwindow上面需要有一个主widget，主widget上可以有若干个布局layout， 可以是水平布局（QHBoxLayout）、垂直布局（QVBoxLayout）、网格布局（QGridLayout）。布局里可以放各种组件，像按钮，对话框之类。当然这个关系不是绝对包含的，比如layout里面也可以加入widget。
-</p>
-<p>
-map是记录地图的int数组，0表示空地，正数表示图片的编号
-</p>
-<p>
-在对层次关系了解后，我们在 mainwindow.h 上依次新建widget、layout和button们
-</p>
+                <p>
+                首先了解一下布局和widget
+                </p>
+                <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827133245574-1895594295.png" alt="layout">
+                <p>
+                先对qt的组件层次关系有一个总体上的把握，大体的层次关系是这样，mainwindow上面需要有一个主widget，主widget上可以有若干个布局layout， 可以是水平布局（QHBoxLayout）、垂直布局（QVBoxLayout）、网格布局（QGridLayout）。布局里可以放各种组件，像按钮，对话框之类。当然这个关系不是绝对包含的，比如layout里面也可以加入widget。
+                </p>
+                <p>
+                map是记录地图的int数组，0表示空地，正数表示图片的编号
+                </p>
+                <p>
+                在对层次关系了解后，我们在 mainwindow.h 上依次新建widget、layout和button们
+                </p>
 
 <pre>
 QWidget *windows;    // 主widget
@@ -259,16 +260,16 @@ ImageButton *image[X+2][Y+2];// 存储二态图片的按钮
 QGridLayout *gridLayout;    // 主布局
 </pre>
 
-<p>
-当然要包含QGridLayout库，另外的ImageButton是我自己创建的一个类，目的是让按钮拥有普通态和激活态两种显示图片状态，为之后的选中后高亮显示做准备。
-</p>
-<p>
-先说说我的imagebutton的实现。
-</p>
-<p>
+                <p>
+                当然要包含QGridLayout库，另外的ImageButton是我自己创建的一个类，目的是让按钮拥有普通态和激活态两种显示图片状态，为之后的选中后高亮显示做准备。
+                </p>
+                <p>
+                先说说我的imagebutton的实现。
+                </p>
+                <p>
 
-实现了这些功能 {初始设置两个可以相互切换的图标（我的用途是切换图标的激活与未激活）、清空图标（把图片换成纯灰色）、设置新的图片（方便player移动到这个按钮）、交换两个按钮的图片（后续的重排shuffle功能用到）}
-</p>
+                实现了这些功能 {初始设置两个可以相互切换的图标（我的用途是切换图标的激活与未激活）、清空图标（把图片换成纯灰色）、设置新的图片（方便player移动到这个按钮）、交换两个按钮的图片（后续的重排shuffle功能用到）}
+                </p>
 
 <pre>
 imagebutton.h
@@ -358,10 +359,13 @@ void ImageButton::flushIcon()
     setIcon(normalState);
 }
 ​
- 
+</pre>
 
-创建完成之后，需要在mainwindow.cpp里实例化并赋值信息
+                <p>
+                创建完成之后，需要在mainwindow.cpp里实例化并赋值信息
+                </p>
 
+<pre>
 windows = new QWidget();
 gridLayout = new QGridLayout;
 ​
@@ -372,9 +376,13 @@ for(int i = 0; i < X+2; ++i)
                           texts2[buttonNum]);
             gridLayout->addWidget(image[i][j], i, j, Qt::AlignCenter);
  
+</pre>
 
-这里是根据地图的大小创建了imagebutton，x+2*Y+2最外面一圈是陆地，中间是待消除的图标。这里调用了creatImageButton函数，实现如下
+                <p>
+                这里是根据地图的大小创建了imagebutton，x+2*Y+2最外面一圈是陆地，中间是待消除的图标。这里调用了creatImageButton函数，实现如下
+                </p>
 
+<pre>
 ImageButton *MainWindow::createImageButton(const QString &str1,
                                            const QString &str2)
 {
@@ -396,24 +404,24 @@ ImageButton *MainWindow::createImageButton(const QString &str1,
 }
 </pre>
  
-<p>
-接收两个图片地址字符串，把图片加载进来，实例化imagebutton，设置imgbutton大小和背景格式，返回一个Imagebutton类型
-</p>
-<p>
-button的setIcon()方法接收一个QIcon对象，我在读入图片的时候选择先用QPixmap格式读入，再用QIcon (img)转为QIcon格式
-</p>
-<p>
-人物图片的读入也一样，在.h文件下创建对象，在.cpp文件中读入就ok了
-</p>
-<p>
-键盘事件实现人物移动和人物激活按钮
-</p>
-<p>
-首先在.h文件声明对keyPressEvent的重写void keyPressEvent(QKeyEvent *event);
-</p>
-<p>
-我的实现如下
-</p>
+                <p>
+                接收两个图片地址字符串，把图片加载进来，实例化imagebutton，设置imgbutton大小和背景格式，返回一个Imagebutton类型
+                </p>
+                <p>
+                button的setIcon()方法接收一个QIcon对象，我在读入图片的时候选择先用QPixmap格式读入，再用QIcon (img)转为QIcon格式
+                </p>
+                <p>
+                人物图片的读入也一样，在.h文件下创建对象，在.cpp文件中读入就ok了
+                </p>
+                <h2>
+                键盘事件实现人物移动和人物激活按钮
+                </h2>
+                <p>
+                首先在.h文件声明对keyPressEvent的重写void keyPressEvent(QKeyEvent *event);
+                </p>
+                <p>
+                我的实现如下
+                </p>
 
 <pre>
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -477,20 +485,19 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 </pre>
  
 
-<p>
-根据按键来判断运动方向：
-</p>
-<ul>
-    <li>如果超出就break</li>
-    <li>如果碰到图标就发送激活这个图标的信号（当然这个信号得在.h文件定义并提前链接到处理的槽函数中）
-    </li>
-    <li>如果可以移动，那就改变人物的坐标</li>
-    <li></li>
-</ul>
+                <p>
+                根据按键来判断运动方向：
+                </p>
+                <ul>
+                    <li>如果超出就break</li>
+                    <li>如果碰到图标就发送激活这个图标的信号（当然这个信号得在.h文件定义并提前链接到处理的槽函数中）
+                    </li>
+                    <li>如果可以移动，那就改变人物的坐标</li>
+                </ul>
 
-<p>
-发送激活信号后，处理槽函数change(int, int)接收到激活的位置，实现如下
-</p>
+                <p>
+                发送激活信号后，处理槽函数change(int, int)接收到激活的位置，实现如下
+                </p>
 <pre>
 void MainWindow::change(int x, int y)
 {
@@ -548,17 +555,18 @@ void MainWindow::change(int x, int y)
 }
 </pre>
 
-<p>
-通过创造一个静态变量来记录访问的次数
-</p>
+                <p>
+                通过创造一个静态变量来记录访问的次数
+                </p>
+                <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827144454535-278946624.png" alt="decision tree">
 
-<h2>
-实现按钮消除
-</h2>
+            <h2>
+            实现按钮消除
+            </h2>
 
-<p>
-这算是游戏的核心算法，其实本质就是BFS，用dfs不行，我是参考https://www.cnblogs.com/HappyAngel/archive/2010/12/25/1916731.html，用dfs消除是可以实现的，但要记录路径就很麻烦了，上面的文章我看了好几遍才搞清楚，建议多看几遍。这里贴上检验代码。
-</p>
+                <p>
+                这算是游戏的核心算法，其实本质就是BFS，用dfs不行，我是参考https://www.cnblogs.com/HappyAngel/archive/2010/12/25/1916731.html，用dfs消除是可以实现的，但要记录路径就很麻烦了，上面的文章我看了好几遍才搞清楚，建议多看几遍。这里贴上检验代码。
+                </p>
  
 <pre>
 // 检查两个图标是否可消除
@@ -654,35 +662,34 @@ void MainWindow::bfs(int x1, int y1,int cnt, int i)
 }
 </pre>
 
-<h2>
-实现绘制按钮之间的连线
-</h2>
-<p>
-这是最难为我的一步，因为我采用的方法是用button显示图片，但是Qt不允许在控件上面画，也就是不能叠加显示，我和老师交流了一下，很没有头绪
-</p>
+            <h2>
+            实现绘制按钮之间的连线
+            </h2>
+                <p>
+                这是最难为我的一步，因为我采用的方法是用button显示图片，但是Qt不允许在控件上面画，也就是不能叠加显示，我和老师交流了一下，很没有头绪
+                </p>
 
+                <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827160241848-165486054.png" alt="wechat">
 
- 
+                <p>
+                在千思万虑后我想到了解决办法——把连线做成图片，只需要做从左到右、从上到下、从左到上下，从右到上下六种图片，就可以拼接形成路径了。但还是挺难，这也就导致画线函数成了整个程序最长的函数。方法是这样的：
+                </p>
 
- 
-<p>
-在千思万虑后我想到了解决办法——把连线做成图片，只需要做从左到右、从上到下、从左到上下，从右到上下六种图片，就可以拼接形成路径了。但还是挺难，这也就导致画线函数成了整个程序最长的函数。方法是这样的：
-</p>
-<p>
-从起点开始搜索
-</p>
-<p>
-每一个点记录的是路线的上一个keyPoint，可以理解为拐点
-</p>
-<p>
-画路径的时候从终点开始向起点回溯
-</p>
-<p>
-如果没太理解，再看看https://www.cnblogs.com/HappyAngel/archive/2010/12/25/1916731.html
-</p>
-<p>
-这里贴出画线的代码
-</p>
+                <ul>
+                    <li>从起点开始搜索</li>
+                    <li>每一个点记录的是路线的上一个keyPoint，可以理解为拐点
+                    </li>
+                    <li>画路径的时候从终点开始向起点回溯</li>
+                </ul>
+                <p>
+                <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827160248501-2026876453.png" alt="dfs">
+
+                <p>
+                如果没太理解，再看看https://www.cnblogs.com/HappyAngel/archive/2010/12/25/1916731.html
+                </p>
+                <p>
+                这里贴出画线的代码
+                </p>
 <pre>
 //
 // 可消除状态下的路线更新，路径上的方块都转换图像。path里记录的是拐点信息
@@ -776,9 +783,9 @@ void MainWindow::flushLine(int c)
 }
 </pre>
 
-<p>
-为了避免画线遮掉人物，还另做了6*3张图片（p1,p2,p1+p2乘以6种），另写了一个判断函数
-</p>
+                <p>
+                为了避免画线遮掉人物，还另做了6*3张图片（p1,p2,p1+p2乘以6种），另写了一个判断函数
+                </p>
 <pre>
 // 处理路径显示和人物重合
 //
@@ -796,29 +803,30 @@ void MainWindow::lineOnPlayer(loc next,
     
 }
 </pre>
-<p>
-实现双人模式
-</p>
-<p>
-双人模式要加的东西有：
-</p>
-<ul>
-    <li>键盘事件</li>
-    <li>判断函数</li>
-</ul>
-<p>
-键盘事件没啥说的，和player1完全一致，但判断函数不能复用很麻烦。老师在实现建议里面提到将player实现为一个类，两个player对应两个实例，我一开始没那么做，后面后悔可要改的东西太多了
-</p>
-<p>
-最后的道具时间音乐等都比较简单，在做到这一步以后（倒装）。代码基本可以复制。文件操作也比较简单，这里就不多提了，代码我放在了github，链接：https://github.com/kenor5/project1_-
-</p>
 
-<h2>界面美化</h2>
-<p>
-我觉得美化的重点就是矩形倒圆角、调整背景半透明、设置好看的背景图片，这是花时间最少但最出效果的部分
-</p>
+            <h2>
+            实现双人模式
+            </h2>
+                <p>
+                双人模式要加的东西有：
+                </p>
+                <ul>
+                    <li>键盘事件</li>
+                    <li>判断函数</li>
+                </ul>
+                <p>
+                键盘事件没啥说的，和player1完全一致，但判断函数不能复用很麻烦。老师在实现建议里面提到将player实现为一个类，两个player对应两个实例，我一开始没那么做，后面后悔可要改的东西太多了
+                </p>
+                <p>
+                最后的道具时间音乐等都比较简单，在做到这一步以后（倒装）。代码基本可以复制。文件操作也比较简单，这里就不多提了，代码我放在了github，链接：https://github.com/kenor5/project1_-
+                </p>
 
-<p>倒圆角&&设置三态按钮的方法：设置样式表，代码如下</p>
+            <h2>界面美化</h2>
+                <p>
+                我觉得美化的重点就是矩形倒圆角、调整背景半透明、设置好看的背景图片，这是花时间最少但最出效果的部分
+                </p>
+
+                <p>倒圆角&&设置三态按钮的方法：设置样式表，代码如下</p>
 
 <pre>
 button->setStyleSheet("QPushButton{"
@@ -837,10 +845,10 @@ button->setStyleSheet("QPushButton{"
                      ""
                      "border-style: inset;"
                       "}");
-                    </pre>
-<p>
-设置背景半透明：
-</p>
+</pre>
+                <p>
+                设置背景半透明：
+                </p>
 <pre>
 scores->setStyleSheet(""//最后一位透明度
                          "border:2px rgb(237, 241, 255);"
@@ -851,11 +859,11 @@ scores->setStyleSheet(""//最后一位透明度
                          "border-style: outset;");
 </pre>
 
-<p>还有重要的一点：在button里边设置背景图片时，想要实现半透明，图片必须是PNG格式（jpg格式不附带透明度信息），而且png的不透明度必须小于100%，否则显示出来还是不透明，改不透明度还是在ps里，方法为：在图层的右上角更改图层透明度，然后存储为PNG格式，这样得到的图片就是半透明的，设置在button上就可以隐约显示出背景了。
-</p>
+                <p>还有重要的一点：在button里边设置背景图片时，想要实现半透明，图片必须是PNG格式（jpg格式不附带透明度信息），而且png的不透明度必须小于100%，否则显示出来还是不透明，改不透明度还是在ps里，方法为：在图层的右上角更改图层透明度，然后存储为PNG格式，这样得到的图片就是半透明的，设置在button上就可以隐约显示出背景了。
+                </p>
 
-<p>
-还有一些小问题，比如正方形的图标放在倒过圆角的button里边不契合，还是会显示出整个方形图片。这个问题需要在ps里面对原始图片倒圆角。
-</p>
+                <p>
+                还有一些小问题，比如正方形的图标放在倒过圆角的button里边不契合，还是会显示出整个方形图片。这个问题需要在ps里面对原始图片倒圆角。
+                </p>
     </div>
 </div>
