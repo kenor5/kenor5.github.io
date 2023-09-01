@@ -19,8 +19,8 @@
             <p>
             主要参考：https://blog.csdn.net/zju_fish1996/article/details/50466698（一位靓仔写的连连看，基本照着他的启蒙）and http://shouce.jb51.net/qt-beginning/5.html（文档）*
             </p>
-            <h2>
-            作业要求：
+            <h2 id="refer">
+            作业要求
             </h2>
 
                 <blockquote>
@@ -163,7 +163,7 @@
             <p>
             这里就按照我的顺序逐步讲解
             </p>
-            <h2>
+            <h2 id="menu">
             做出菜单窗口，几个窗口的跳转
             </h2>
                 <p>
@@ -236,7 +236,7 @@ QObject::connect(&dlg, SIGNAL(mainShow()), &w, SLOT(show()));
                 如此一来就可以实现几个界面的跳转了
                 </p>
 
-            <h2>
+            <h2 id="person">
             在主窗口上显示按钮和人物
             </h2>
 
@@ -413,7 +413,7 @@ ImageButton *MainWindow::createImageButton(const QString &str1,
                 <p>
                 人物图片的读入也一样，在.h文件下创建对象，在.cpp文件中读入就ok了
                 </p>
-                <h2>
+                <h2 id="activate">
                 键盘事件实现人物移动和人物激活按钮
                 </h2>
                 <p>
@@ -560,7 +560,7 @@ void MainWindow::change(int x, int y)
                 </p>
                 <img src="https://img2020.cnblogs.com/blog/2185548/202108/2185548-20210827144454535-278946624.png" alt="decision tree">
 
-            <h2>
+            <h2 id="clear">
             实现按钮消除
             </h2>
 
@@ -662,7 +662,7 @@ void MainWindow::bfs(int x1, int y1,int cnt, int i)
 }
 </pre>
 
-            <h2>
+            <h2 id="connect">
             实现绘制按钮之间的连线
             </h2>
                 <p>
@@ -804,7 +804,7 @@ void MainWindow::lineOnPlayer(loc next,
 }
 </pre>
 
-            <h2>
+            <h2 id="multiple">
             实现双人模式
             </h2>
                 <p>
@@ -821,7 +821,7 @@ void MainWindow::lineOnPlayer(loc next,
                 最后的道具时间音乐等都比较简单，在做到这一步以后（倒装）。代码基本可以复制。文件操作也比较简单，这里就不多提了，代码我放在了github，链接：https://github.com/kenor5/project1_-
                 </p>
 
-            <h2>界面美化</h2>
+            <h2 id="butify">界面美化</h2>
                 <p>
                 我觉得美化的重点就是矩形倒圆角、调整背景半透明、设置好看的背景图片，这是花时间最少但最出效果的部分
                 </p>
@@ -865,5 +865,7 @@ scores->setStyleSheet(""//最后一位透明度
                 <p>
                 还有一些小问题，比如正方形的图标放在倒过圆角的button里边不契合，还是会显示出整个方形图片。这个问题需要在ps里面对原始图片倒圆角。
                 </p>
+
+            <div id="navigater"></div>
     </div>
 </div>

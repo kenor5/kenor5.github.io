@@ -8,7 +8,7 @@
 	<div class="text-container">
         <h1>Minik8s</h1>
 
-        <h2>Overall architecture</h2>
+        <h2 id="architecture">Overall architecture</h2>
             <img src="https://user-images.githubusercontent.com/75160010/246392316-ad757052-6d8a-4425-a9e9-f234d0fe0e2e.png"/>
             <p><b>Minik8s</b> mainly contains following compoments:</p>
             <p><code>Etcd</code> Running on master node, record all persistent data and varous states on the cluster.</p>
@@ -27,7 +27,7 @@
             <p><code>KubeProxy</code> Running on every node, accepting the request of Apiserver to create/delete/update service, and modify the iptable on the node.</p>
             <p><code>Kubelet</code> Running on worker node, accepting the request of Apiserver to manage the Pod. Monitor the internal running status of the local Pod, and notify the Apiserver to update the Pod status information in etcd when the Pod status is updated.</p>
         
-        <h2>Project Development Management</h2>
+        <h2 id="management">Project Development Management</h2>
             <p><b>project directory</b></p>
             <img src="https://user-images.githubusercontent.com/75160010/246393352-181ff64b-77c0-42a1-8086-4e96a1cfca77.png" alt="proj dir img">
             
@@ -35,7 +35,7 @@
             <p><em>master</em> branch as main branch, different features at each stage are developed in new corresponding branches such as serverless, autoscale, and deployment.</p>
             <img src="https://user-images.githubusercontent.com/75160010/246403183-cbe12fc6-c02b-4275-b0de-e80c5cbe2e43.png" alt="branch img">
 
-        <h2>Dependencies and Libs</h2>
+        <h2 id="libs">Dependencies and Libs</h2>
             <ul>
                 <li>Operating Docker: <em>github.com/docker/docker</em></li>
                 <li>Operating Etcd: <em>go.etcd.io/etcd/client/v3</em></li>
@@ -46,8 +46,8 @@
                 <li>Other go libs: <em>"context" "encoding/json" "fmt" "strings" "strconv" "time" "os" "sync" "regexp" "testing"</em></li>
             </ul>
 
-        <h2>Detailed Implementation</h2>
-            <h3>Node registeration, management and scheduling strategy</h3>
+        <h2 id="impl">Detailed Implementation</h2>
+            <h3 id="node">Node registeration, management and scheduling strategy</h3>
                 <p><b>Node config file</b></p>
                 <p>When the Kubelet on each node starts, it will read the corresponding Node configuration file, as follows:</p>
                 <pre>
@@ -87,7 +87,7 @@ Labels:
     
                 </ul>
 
-            <h3>Pod Creation, Management and Internal Communication</h3>
+            <h3 id="pod">Pod Creation, Management and Internal Communication</h3>
                 <p><b>Pod Create and delete</b></p>
                 <p>Pod creation is handled according to the situation:</p>
                 <ul>
@@ -110,7 +110,7 @@ Labels:
                 <p><b>Pod internal communication</b></p>
                 <p>Each Pod creates a pause container, and other containers in the pod share the network address space of the pause container through the network mode of <code>network=pauseContainer</code>, so that the internal containers of the Pod communicate with each other through localhost</p>
                 
-            <h3>Inter-Pod (same Node, different Node), service communication</h3>
+            <h3 id="communication">Inter-Pod (same Node, different Node), service communication</h3>
                 <p><b>Pod to pod</b></p>
                 <p>We use the Flannel plug-in and modify the configuration of Docker to complete the globally unique IP allocation of Pods and the communication between Pods. The relevant environment for each machine is as follows:</p>
                 <pre>
@@ -151,7 +151,7 @@ spec:
                 </pre>
                 <p>Specific implementation: For each port in the ports field in the service yaml file, create a svc-chain in iptable, each svc-chain corresponds to several sep-chains, and the sep-chain navigates to the corresponding PodIp and port. When a piece of traffic arrives, it will pass through these chains in turn and reach the corresponding pod. Of course, the pod access support here is guaranteed by the communication between pods.</p>
 
-        <h3>Deployment Creation And Management</h3>
+        <h3 id="deploy">Deployment Creation And Management</h3>
             <p><b>Deployment creation</p></b>
                 <p>When Apiserver receives the Kubectl creation command, creates Pod metadata according to the template in yaml and writes it into etcd. etcdwatch detects the update of Pod information in etcd, and then selects Node to start Pod and manage according to the Scheduler strategy. The precautions are the metadata in the yaml file .name needs to be xxx-deployment to generate a unique Deployment name</p>
             
@@ -161,7 +161,7 @@ spec:
             <p><b>Deployment replica update policy</p></b>
                 <p>In the yaml file of Deployment, you can specify the policy of deleting redundant replicas through the spec.update field. When <code>spec.update=newer</code> or empty, the newer replica created after deletion is given priority; when <code>spec.update=older</code>, the creation time is given priority. Earlier, older replica Pods.</p>
         
-        <h3>Autoscale management and dynamic scaling strategy</h3>
+        <h3 id="autoscale">Autoscale management and dynamic scaling strategy</h3>
             <p>Based on cAdvisor and promtheus, the usage of CPU and Memory resources is monitored. By default, the promtheus of the master is used to query and calculate the CPU or Memory usage of the past one minute every 30s. The monitoring time interval can be specified through the scaleInterval field, which cannot be lower than promtheus to collect data The interval is 15s</p>
             <p>Execute the HPA process:</p>
 
@@ -186,7 +186,7 @@ behavior:
             
                 <p>It supports specifying different scaling strategies through scaleDown and scaleUp in HPA's yaml. Adding the above behavior configuration to HPA can limit the rate at which pods are deleted by HPA to 10% per minute. In order to ensure that the number of pods deleted per minute does not exceed 5, you can add a second shrink policy, the size is fixed at 5, and selectPolicy is set to the minimum value Min. Setting selectPolicy to Min means that the autoscaler will choose the policy that affects the least number of Pods. If the above behavior strategy is not specified, the default strategy is: when the expected number of replicas is many times different from the current number of replicas, the multiple is expanded to be close to the expected number of replicas, and when it is closer to the number of replicas, the addition and subtraction strategy is used to fine-tune the number of replicas.</p>
             
-        <h3>DNS And Forwarding</h3>
+        <h3 id="dns">DNS And Forwarding</h3>
             <p>Use the nginx container as a reverse proxy. When a request comes, it will first resolve the nginx IP in the hosts file, access the nginx container through the nginx IP and port 80, and the nginx container will navigate the corresponding traffic to the corresponding service ip.</p>
             <pre>
 kind: Dns
@@ -225,14 +225,14 @@ kubectl apply -f ./test/service_test.yaml</pre>
                 </ul>
                 <p>We use hosts file to resolve domain name here, so remember to add entry to it when new server_name appear in yaml files.</p>
         
-            <h3>Fault Tolerance and Control Plane Restart</h3>
+            <h3 id="restart">Fault Tolerance and Control Plane Restart</h3>
                 <p><b>master node fault tolerance and restart</b></p>
                 <p>All controllers in maseter are managed as stateless, and all metadata information will be written to etcd before applying. After restarting, all information can be directly restored from etcd. When the workload is deleted, the information in etcd will not be deleted, so it can be restored. To the state of the master control plane before restarting;</p>
 
                 <p><b>woker node fault tolerance and restart</b></p>
                 <p>Pod metadata is not persisted to disk, but stored in memory. The Podmanager mainly stores and manages the Container information related to the Pod running on the Node. When the Kubelet is restarted and registered to the Maseter and Apiserver to establish a connection, the Maseter will return the Node and the Pod information related to the Node through the HosIP information stored in the Pod. Podmanager This information will be used to reinitialize the content in the Podmanager and establish a mapping relationship from the local Pod to the container.</p>
 
-            <h3>GPU feature implementation</h3>
+            <h3 id="gpu">GPU feature implementation</h3>
                 <p>We write a Http server in Python and pack it into a docker image. It runs on port 8090 and provide two services:</p>
                 <ul>
                     <li>Upload and execute the task: visit <code>8090/sbatch</code>, accept a parameter "module_name", this function will combine the "./Data/{module_name}.cu" file in the container directory of the running server with "./Data/{module_name}. slurm” file to the Jiaowosuan platform, and submit the task, use a global variable to record the job_id, if the task is submitted successfully, return success information and job_id, otherwise return failure information.</li>
@@ -240,7 +240,7 @@ kubectl apply -f ./test/service_test.yaml</pre>
 
                 </ul>
 
-            <h3>Serverless implementation</h3>
+            <h3 id="serverless">Serverless implementation</h3>
                 <p><b>Image Creation</b></p>
                 <p>Each image contains a server with the same flask architecture as follows:</p>
                 <img src="https://user-images.githubusercontent.com/75160010/246404608-e9a61515-1baf-4d44-9b24-3c2b04b1b683.png" alt="flask">
@@ -267,8 +267,7 @@ kubectl apply -f ./test/service_test.yaml</pre>
         <p>
             <a href="https://github.com/kenor5/Minik8s">View in Github</a>
         </p>
-        
 
-    
+        <div id="navigater"></div>
     </div>
 </div>

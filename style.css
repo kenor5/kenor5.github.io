@@ -380,7 +380,11 @@
   /**************************************
     CONTENT PAGES 
   **************************************/
-  
+  ul, ol, li{
+    list-style-type: none;
+  }
+
+
   #loaded {
     width: calc(100% - 100px);
     height: calc(100vh - 76px);
@@ -392,6 +396,57 @@
   #load-content {
     height: 100vh;
     overflow: hidden;
+  }
+
+  #navigater {
+    width: 20%;
+    height: 50vh;
+    position: fixed;
+    right: 0;
+    top: 20%;
+    background-color: #00000083;
+    overflow: scroll;
+
+    color:#ccc;
+    font-size: 5px;
+    font-weight: 100;
+
+    overflow-y: scroll;
+  }
+
+  #navigater::-webkit-scrollbar { 
+    width: 0px;
+  }
+
+  #navigater ul{
+    margin-top: 20px;
+  }
+
+  #navigater ul li{
+    /* margin-left: 40px; */
+    /* margin-top: 10px; */
+    padding-top: 10px;
+    margin-right: 10px;
+    line-height: normal;
+  }
+
+  #navigater li a::before{
+    content: "-";
+    position: absolute;
+    left: -12px;
+    /* bottom: 3px; */
+    font-size: 10px;
+    color: #ccc;
+    text-decoration: none;
+  }
+
+  #navigater li a{
+    color: #ccc;
+    text-decoration: none;
+  }
+
+  #navigater li a:hover{
+    color:#DA635D;
   }
 
   h1 {
